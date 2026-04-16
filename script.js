@@ -116,7 +116,7 @@ const stories = {
         label: "Vzít si GOD loot",
         video: "videos/KrsandoNE.mp4",
         endTitle: "Skuci vyhrál",
-        endText: "Skuci zabil Krsanda a dostal mega OP loot. GG.",
+        endText: "Skuci zabil Krsanda a dostal mega OP loot.",
         type: "loss"
       }
     ]
@@ -130,7 +130,7 @@ const stories = {
         label: "Zahodit skript a neřídit se podle něj",
         video: "videos/EbanANO.mp4",
         endTitle: "Eban vyhrál!",
-        endText: "Eban ignoroval skript, použil Crystal PVP (zakázané!) a zabil Skuciho.",
+        endText: "Eban ignoroval skript, použil Crystal PVP a zabil Skuciho.",
         type: "win"
       },
       {
@@ -151,14 +151,14 @@ const stories = {
         label: "Kasprovi se podaří Skuciho přesvědčit",
         video: "videos/KasprANO.mp4",
         endTitle: "Kaspr vyhrál!",
-        endText: "Podplácení fungovalo. Skuci přijal a umřel. Money talks.",
+        endText: "Podplácení fungovalo. Skuci přijal a umřel.",
         type: "win"
       },
       {
         label: "Skuci nabídku odmítne",
         video: "videos/KasprNE.mp4",
         endTitle: "Kaspr prohrál",
-        endText: "Skuci odmítnul a odjel svoji Teslou. Kaspr zůstal sám.",
+        endText: "Skuci odmítnul a odjel svoji Teslou.",
         type: "loss"
       }
     ]
@@ -179,7 +179,7 @@ const stories = {
         label: "Předvolat luk s punch 2 jako svědka",
         video: "videos/FatlaaxNE.mp4",
         endTitle: "fatlaax to vzdal... ale?",
-        endText: "fatlaax předložil punch 2 bow, odešel, odpálil se ke drakovi a vyhrál jinak.",
+        endText: "fatlaax předložil punch 2 bow, Skuci pomocí ní odešel, odpálil se ke drakovi a vyhrál.",
         type: "loss"
       }
     ]
@@ -238,7 +238,36 @@ const backBtn      = document.getElementById("back-btn");
 const bgMusic      = document.getElementById("bg-music");
 const clickSfx     = document.getElementById("click-sfx");
 
+const loadingSpinner = document.getElementById("loading-spinner");
+const loadingSpinnerIntro = document.getElementById("loading-spinner-intro");
+
 let currentPlan = null;
+
+// ═══════════════════════════════════════════════════
+// VIDEO LOADING HELPER
+// ═══════════════════════════════════════════════════
+function loadAndPlay(videoEl, src, spinnerEl) {
+  return new Promise(resolve => {
+    if (spinnerEl) spinnerEl.classList.remove("hidden");
+    videoEl.src = src;
+    videoEl.load();
+    const onReady = () => {
+      videoEl.removeEventListener("canplaythrough", onReady);
+      if (spinnerEl) spinnerEl.classList.add("hidden");
+      videoEl.play();
+      resolve();
+    };
+    videoEl.addEventListener("canplaythrough", onReady);
+  });
+}
+
+function preloadVideo(src) {
+  const link = document.createElement("link");
+  link.rel = "prefetch";
+  link.href = src;
+  link.as = "video";
+  document.head.appendChild(link);
+}
 
 // ═══════════════════════════════════════════════════
 // SOUND
@@ -270,10 +299,9 @@ function stopMusic() {
 function playIntro() {
   showScreen("intro");
   planOverlay.classList.add("hidden");
-  introVideo.src = CDN + "/intro.mp4";
-  introVideo.load();
-  introVideo.play();
-  playMusic(CDN + "/intro.mp3");
+  loadAndPlay(introVideo, CDN + "/intro.mp4", loadingSpinnerIntro).then(() => {
+    playMusic(CDN + "/intro.mp3");
+  });
 
   introVideo.onended = () => {
     stopMusic();
@@ -318,10 +346,11 @@ function startPlan(planId) {
   showScreen("video");
 
   videoOverlay.classList.add("hidden");
-  videoPlayer.src = currentPlan.intro;
-  videoPlayer.load();
-  videoPlayer.play();
-  playMusic(currentPlan.music);
+  loadAndPlay(videoPlayer, currentPlan.intro, loadingSpinner).then(() => {
+    playMusic(currentPlan.music);
+    // preload choice videos
+    currentPlan.choices.forEach(c => preloadVideo(c.video));
+  });
 
   videoPlayer.onended = () => {
     stopMusic();
@@ -353,9 +382,7 @@ function playResult(index) {
   const choice = currentPlan.choices[index];
   videoOverlay.classList.add("hidden");
 
-  videoPlayer.src = choice.video;
-  videoPlayer.load();
-  videoPlayer.play();
+  loadAndPlay(videoPlayer, choice.video, loadingSpinner);
 
   videoPlayer.onended = () => {
     showEnd(choice);

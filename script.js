@@ -491,7 +491,6 @@ document.getElementById("menu-start-btn").addEventListener("click", () => {
     const vid = document.createElement("video");
     vid.preload = "auto";
     vid.muted = true;
-    vid.crossOrigin = "anonymous";
     vid.src = url;
     videoCache[url] = vid;
 

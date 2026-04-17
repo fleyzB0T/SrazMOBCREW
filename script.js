@@ -244,12 +244,18 @@ const loadingSpinnerIntro = document.getElementById("loading-spinner-intro");
 let currentPlan = null;
 
 // ═══════════════════════════════════════════════════
+// VIDEO BLOB CACHE
+// ═══════════════════════════════════════════════════
+const blobCache = {};
+
+// ═══════════════════════════════════════════════════
 // VIDEO LOADING HELPER
 // ═══════════════════════════════════════════════════
 function loadAndPlay(videoEl, src, spinnerEl) {
   return new Promise(resolve => {
     if (spinnerEl) spinnerEl.classList.remove("hidden");
-    videoEl.src = src;
+    // Use cached blob URL if available, otherwise fall back to original URL
+    videoEl.src = blobCache[src] || src;
     videoEl.load();
     const onReady = () => {
       videoEl.removeEventListener("canplaythrough", onReady);
@@ -262,6 +268,8 @@ function loadAndPlay(videoEl, src, spinnerEl) {
 }
 
 function preloadVideo(src) {
+  // Already cached as blob, no need to prefetch
+  if (blobCache[src]) return;
   const link = document.createElement("link");
   link.rel = "prefetch";
   link.href = src;
@@ -472,7 +480,11 @@ document.getElementById("menu-start-btn").addEventListener("click", () => {
 
   urls.forEach(url => {
     fetch(url)
-      .then(() => updateProgress())
+      .then(r => r.blob())
+      .then(blob => {
+        blobCache[url] = URL.createObjectURL(blob);
+        updateProgress();
+      })
       .catch(() => updateProgress());
   });
 })();

@@ -1,4 +1,4 @@
-﻿// ═══════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════
 //  MegaSkuci Manhunt – Video Story Engine
 // ═══════════════════════════════════════════════════
 
@@ -471,14 +471,8 @@ document.getElementById("menu-start-btn").addEventListener("click", () => {
   }
 
   urls.forEach(url => {
-    const vid = document.createElement("video");
-    vid.preload = "auto";
-    vid.muted = true;
-    vid.src = url;
-    const done = () => { vid.removeEventListener("canplaythrough", done); updateProgress(); };
-    vid.addEventListener("canplaythrough", done);
-    // Fallback timeout in case canplaythrough never fires
-    setTimeout(done, 15000);
-    vid.load();
+    fetch(url)
+      .then(() => updateProgress())
+      .catch(() => updateProgress());
   });
 })();

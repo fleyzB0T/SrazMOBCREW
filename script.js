@@ -246,7 +246,7 @@ let currentPlan = null;
 // ═══════════════════════════════════════════════════
 // VIDEO BLOB CACHE
 // ═══════════════════════════════════════════════════
-const blobCache = {};
+const videoCache = {};
 
 // ═══════════════════════════════════════════════════
 // VIDEO LOADING HELPER
@@ -254,27 +254,34 @@ const blobCache = {};
 function loadAndPlay(videoEl, src, spinnerEl) {
   return new Promise(resolve => {
     if (spinnerEl) spinnerEl.classList.remove("hidden");
-    // Use cached blob URL if available, otherwise fall back to original URL
-    videoEl.src = blobCache[src] || src;
-    videoEl.load();
+
+    // If we have a preloaded video element, copy its src (already buffered)
+    const cached = videoCache[src];
+    if (cached && cached.readyState >= 3) {
+      videoEl.src = cached.src;
+      videoEl.load();
+    } else {
+      videoEl.src = src;
+      videoEl.load();
+    }
+
     const onReady = () => {
       videoEl.removeEventListener("canplaythrough", onReady);
       if (spinnerEl) spinnerEl.classList.add("hidden");
       videoEl.play();
       resolve();
     };
-    videoEl.addEventListener("canplaythrough", onReady);
+
+    if (videoEl.readyState >= 3) {
+      onReady();
+    } else {
+      videoEl.addEventListener("canplaythrough", onReady);
+    }
   });
 }
 
 function preloadVideo(src) {
-  // Already cached as blob, no need to prefetch
-  if (blobCache[src]) return;
-  const link = document.createElement("link");
-  link.rel = "prefetch";
-  link.href = src;
-  link.as = "video";
-  document.head.appendChild(link);
+  if (videoCache[src]) return;
 }
 
 // ═══════════════════════════════════════════════════
@@ -464,8 +471,10 @@ document.getElementById("menu-start-btn").addEventListener("click", () => {
     s.choices.forEach(c => urls.push(c.video));
   });
 
+  // Deduplicate URLs
+  const uniqueUrls = [...new Set(urls)];
   let loaded = 0;
-  const total = urls.length;
+  const total = uniqueUrls.length;
 
   function updateProgress() {
     loaded++;
@@ -478,13 +487,27 @@ document.getElementById("menu-start-btn").addEventListener("click", () => {
     }
   }
 
-  urls.forEach(url => {
-    fetch(url)
-      .then(r => r.blob())
-      .then(blob => {
-        blobCache[url] = URL.createObjectURL(blob);
-        updateProgress();
-      })
-      .catch(() => updateProgress());
+  uniqueUrls.forEach(url => {
+    const vid = document.createElement("video");
+    vid.preload = "auto";
+    vid.muted = true;
+    vid.crossOrigin = "anonymous";
+    vid.src = url;
+    videoCache[url] = vid;
+
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      updateProgress();
+    };
+    vid.addEventListener("canplaythrough", finish);
+    // Fallback: if metadata loaded but canplaythrough never fires
+    vid.addEventListener("loadeddata", () => setTimeout(finish, 3000));
+    // Error fallback
+    vid.addEventListener("error", finish);
+    // Ultimate fallback
+    setTimeout(finish, 20000);
+    vid.load();
   });
 })();

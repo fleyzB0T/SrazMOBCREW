@@ -440,3 +440,45 @@ document.getElementById("menu-start-btn").addEventListener("click", () => {
   playClick();
   playIntro();
 });
+
+// ═══════════════════════════════════════════════════
+// PRELOAD ALL VIDEOS
+// ═══════════════════════════════════════════════════
+(function preloadAllVideos() {
+  const preloadScreen = document.getElementById("preload-screen");
+  const preloadBar = document.getElementById("preload-bar");
+  const preloadText = document.getElementById("preload-text");
+
+  // Collect all video URLs
+  const urls = [CDN + "/intro.mp4"];
+  Object.values(stories).forEach(s => {
+    urls.push(s.intro);
+    s.choices.forEach(c => urls.push(c.video));
+  });
+
+  let loaded = 0;
+  const total = urls.length;
+
+  function updateProgress() {
+    loaded++;
+    const pct = Math.round((loaded / total) * 100);
+    preloadBar.style.width = pct + "%";
+    preloadText.textContent = pct + " %";
+    if (loaded >= total) {
+      preloadScreen.classList.add("hidden");
+      menuScreen.classList.remove("hidden");
+    }
+  }
+
+  urls.forEach(url => {
+    const vid = document.createElement("video");
+    vid.preload = "auto";
+    vid.muted = true;
+    vid.src = url;
+    const done = () => { vid.removeEventListener("canplaythrough", done); updateProgress(); };
+    vid.addEventListener("canplaythrough", done);
+    // Fallback timeout in case canplaythrough never fires
+    setTimeout(done, 15000);
+    vid.load();
+  });
+})();

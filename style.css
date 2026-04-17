@@ -57,6 +57,44 @@ body {
   image-rendering: pixelated;
 }
 
+/* ── PRELOAD SCREEN ────────────────────── */
+#preload-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: #3b3027;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-image:
+    repeating-conic-gradient(rgba(0,0,0,0.08) 0% 25%, transparent 0% 50%);
+  background-size: 32px 32px;
+  image-rendering: pixelated;
+}
+
+.preload-content {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.preload-bar-bg {
+  width: 320px;
+  height: 18px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 9px;
+  margin: 24px auto 16px;
+  overflow: hidden;
+}
+
+.preload-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--green);
+  border-radius: 9px;
+  transition: width 0.3s ease;
+}
+
 #menu-screen::before {
   content: '';
   position: absolute;

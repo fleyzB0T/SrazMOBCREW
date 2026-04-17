@@ -255,15 +255,9 @@ function loadAndPlay(videoEl, src, spinnerEl) {
   return new Promise(resolve => {
     if (spinnerEl) spinnerEl.classList.remove("hidden");
 
-    // If we have a preloaded video element, copy its src (already buffered)
-    const cached = videoCache[src];
-    if (cached && cached.readyState >= 3) {
-      videoEl.src = cached.src;
-      videoEl.load();
-    } else {
-      videoEl.src = src;
-      videoEl.load();
-    }
+    // Use blob URL from cache (no extra network request)
+    videoEl.src = videoCache[src] || src;
+    videoEl.load();
 
     const onReady = () => {
       videoEl.removeEventListener("canplaythrough", onReady);
@@ -488,25 +482,12 @@ document.getElementById("menu-start-btn").addEventListener("click", () => {
   }
 
   uniqueUrls.forEach(url => {
-    const vid = document.createElement("video");
-    vid.preload = "auto";
-    vid.muted = true;
-    vid.src = url;
-    videoCache[url] = vid;
-
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      updateProgress();
-    };
-    vid.addEventListener("canplaythrough", finish);
-    // Fallback: if metadata loaded but canplaythrough never fires
-    vid.addEventListener("loadeddata", () => setTimeout(finish, 3000));
-    // Error fallback
-    vid.addEventListener("error", finish);
-    // Ultimate fallback
-    setTimeout(finish, 20000);
-    vid.load();
+    fetch(url)
+      .then(r => r.blob())
+      .then(blob => {
+        videoCache[url] = URL.createObjectURL(blob);
+        updateProgress();
+      })
+      .catch(() => updateProgress());
   });
 })();
